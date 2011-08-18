@@ -5,7 +5,9 @@ from collections import namedtuple
 import logging
 
 from django.core.management.base import BaseCommand, CommandError
-from django.db.models import get_model, DateField, DateTimeField
+from django.db.models import get_model, DateField, DateTimeField, ForeignKey
+from django.db.models.fields.related import OneToOneField
+from django.utils.datastructures import SortedDict
 from django_modeler.api.generator import generate_imports
 
 from collections import defaultdict
@@ -26,6 +28,11 @@ class Command(BaseCommand):
             dest='exclude',
             type='string',
             help='Exclude objects'),
+        make_option('-r', '--related',
+            action='store_true',
+            dest='related',
+            default=False,
+            help='query related objects (warning: can take some time)'),
         )
 
     def parse_args(self, *args, **options):
@@ -45,6 +52,8 @@ class Command(BaseCommand):
             if '=' not in arg:
                 raise CommandError, 'Exclude syntax is name=value. Invalid argument {}'.format(arg)
             excludes.__setitem__(*arg.split('=', 1))
+        self.query_related = options['related']
+        print('getting related', self.query_related)
 
         qs = model_class.objects.all().filter(**filters)
         qs = qs.exclude(**excludes)
@@ -52,12 +61,13 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         if len(args) != 1:
-            raise CommandError, 'Error: modeler only accepts on model argument'
+            raise CommandError, 'Error: modeler only accepts one model argument'
 
         # keep building lists of FK dependencies until we get to the leaf
         roots = self.parse_args(*args, **options)
         level = roots
-        stack = []
+        stack = SortedDict()
+        map(stack.__setitem__, roots, [])
         classes = set().union([r.__class__ for r in roots])
 
         while True:
@@ -68,9 +78,24 @@ class Command(BaseCommand):
                 # get the names of FK fields
                 for name in [f.name for f in obj._meta.fields if f.rel]:
                     dep = getattr(obj, name)
-                    if dep:
+                    if dep and dep not in stack:
                         deps.append(dep)
-            stack.append(level)
+                if self.query_related:
+                    for related in obj._meta.get_all_related_objects():
+                        # print('getting field', related.field.name, 'on object', related)
+                        if isinstance(related.field, OneToOneField):
+                            pass
+                        elif isinstance(related.field, ForeignKey):
+                            accessor = related.get_accessor_name()
+                            # print('getting related:', accessor, related)
+                            manager = getattr(obj, accessor)
+                            for dep in manager.all():
+                                if not dep in stack:
+                                    deps.append(dep)
+                    
+            map(stack.__setitem__, deps, [])
+#            print('stack', stack.keys())
+#            print('deps', deps)
             level = deps
 
             if len(deps) < 1:
@@ -81,39 +106,38 @@ class Command(BaseCommand):
         print()
 
         objects = defaultdict(list)
-        for level in reversed(stack):
-            for obj in reversed(level):
-                if obj.pk in objects[obj]:
+        for obj in reversed(stack.keys()):
+            if obj.pk in objects[obj]:
+                continue
+
+            print('{}{}, created = {}.objects.get_or_create('.format(
+                obj._meta.object_name.lower(),
+                obj.pk,
+                obj._meta.object_name))
+
+            postfields = []
+            for field in obj._meta.fields:
+                if field.name.startswith('_'):
+                    continue
+                if isinstance(field, DateField) and (field.auto_now or field.auto_now_add):
+                    postfields.append(field)
+                    continue
+                if isinstance(field, DateTimeField) and (field.auto_now or field.auto_now_add):
+                    postfields.append(field)
                     continue
 
-                print('{}{}, created = {}.objects.get_or_create('.format(
-                    obj._meta.object_name.lower(),
-                    obj.pk,
-                    obj._meta.object_name))
-
-                postfields = []
-                for field in obj._meta.fields:
-                    if field.name.startswith('_'):
-                        continue
-                    if isinstance(field, DateField) and (field.auto_now or field.auto_now_add):
-                        postfields.append(field)
-                        continue
-                    if isinstance(field, DateTimeField) and (field.auto_now or field.auto_now_add):
-                        postfields.append(field)
-                        continue
-
-                    print(' ' * self.indent, field.name, '=', end='', sep='')
-                    if field.rel and field.rel.to:
-                        rel = getattr(obj, field.name)
-                        if rel:
-                            print('{}{}'.format(rel._meta.object_name.lower(), rel.pk), end='')
-                        else:
-                            print('None', end='')
+                print(' ' * self.indent, field.name, '=', end='', sep='')
+                if field.rel and field.rel.to:
+                    rel = getattr(obj, field.name)
+                    if rel:
+                        print('{}{}'.format(rel._meta.object_name.lower(), rel.pk), end='')
                     else:
-                        print(repr(getattr(obj, field.name)), sep='', end='')
-                    print(',')
-                print(')')
-                print()
+                        print('None', end='')
+                else:
+                    print(repr(getattr(obj, field.name)), sep='', end='')
+                print(',')
+            print(')')
+            print()
 
         #print('classes', classes)
         #print('stack', stack)
