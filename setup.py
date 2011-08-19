@@ -39,7 +39,6 @@ setup(
         'django'
     ],
     provides=['django_modeler'],
-    packages=find_packages('src', exclude=["*.tests", "*.tests.*", "tests.*", "tests"]),
-    package_dir={'':'src'},
+    packages=find_packages(),
 )
 

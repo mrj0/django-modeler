@@ -77,3 +77,4 @@ Next, add ``django_modeler`` to your INSTALLED_APPS in ``settings.py``, like so:
 
         [...snip...]
     )
+
