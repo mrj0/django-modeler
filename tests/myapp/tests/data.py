@@ -2,6 +2,7 @@ from myapp.models import TestModel
 from django.contrib.auth.models import User
 from decimal import Decimal
 import datetime
+from tests.myapp.models import RelatedToTestModel
 
 def load():
     user1, created = User.objects.get_or_create(
@@ -23,3 +24,14 @@ def load():
         user=user1,
     )
 
+    related1, created = RelatedToTestModel.objects.get_or_create(
+        id=1,
+        name='related_one',
+        test_model=testmodel1,
+    )
+
+    related2, created = RelatedToTestModel.objects.get_or_create(
+        id=2,
+        name='related_two',
+        test_model=testmodel1,
+    )

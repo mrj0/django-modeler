@@ -8,7 +8,7 @@ from django.db.models import get_model, DateField, DateTimeField, ForeignKey
 from django.db.models.fields.related import OneToOneField
 from django.utils.datastructures import SortedDict
 
-from django_modeler.api import generate_imports, get_object_dependencies, generate_orm
+from django_modeler.api import generate_imports, get_object_dependencies, generate_orm, generate
 
 class Command(BaseCommand):
     args = '<model [filter option] [filter option] ...>'
@@ -27,10 +27,11 @@ class Command(BaseCommand):
             type='string',
             help='Exclude objects'),
         make_option('-r', '--related',
-            action='store_true',
+            action='store',
             dest='related',
-            default=False,
-            help='query related objects (warning: can take some time)'),
+            type='int',
+            default=0,
+            help='number of object relationship levels to pull (does not resolve circular references).'),
         )
 
     def parse_args(self, *args, **options):
@@ -61,41 +62,5 @@ class Command(BaseCommand):
 
         # keep building lists of FK dependencies until we get to the leaf
         roots = self.parse_args(*args, **options)
-        level = roots
-        stack = SortedDict()
-        map(stack.__setitem__, roots, [])
 
-        while True:
-            deps = []
-            for obj in level:
-                deps += get_object_dependencies(obj, related=self.query_related)
-
-            level = []
-            for dep in deps:
-                if dep in stack:
-                    # looks weird but with the sorteddict, replacing a
-                    # key preserves the original order
-                    del stack[dep]
-                else:
-                    # only loop instances we haven't seen before
-                    level.append(dep)
-                stack[dep] = None
-
-            if len(deps) < 1:
-                break
-
-        # add FK classes to set for generating imports
-        classes = set().union([obj.__class__ for obj in stack.keys()])
-        map(print, generate_imports(*classes))
-        print()
-        print()
-
-        objects = defaultdict(list)
-        for obj in reversed(stack.keys()):
-            if obj.pk in objects[obj]:
-                continue
-
-            print(generate_orm(obj, indent=self.indent))
-            print()
-
-        # handle
+        print(generate(*roots, query_related=self.query_related))
