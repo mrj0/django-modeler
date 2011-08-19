@@ -1,4 +1,6 @@
-# Django settings for asdf project.
+import os
+import sys
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
 
 DEBUG = True
 TEMPLATE_DEBUG = DEBUG
@@ -90,8 +92,9 @@ INSTALLED_APPS = (
     'django.contrib.sites',
     'django.contrib.messages',
     'myapp',
+    'django_modeler',
     # Uncomment the next line to enable the admin:
-    # 'django.contrib.admin',
+    'django.contrib.admin',
     # Uncomment the next line to enable admin documentation:
     # 'django.contrib.admindocs',
 )

@@ -1,0 +1,75 @@
+.. _top:
+================
+ Django-Modeler
+================
+
+Django-modeler generates ORM code from an object instance, optionally including foreign key dependencies.
+
+.. _example:
+----------
+ Example
+----------
+
+Modeler adds a management command to Django:
+
+    $ python manage.py modeler myapp.testmodel
+    from myapp.models import TestModel
+    from django.contrib.auth.models import User
+    from decimal import Decimal
+    import datetime
+
+
+    user1, created = User.objects.get_or_create(
+        id=1,
+        username=u'mike',
+        first_name=u'',
+        last_name=u'',
+        email=u'mike@localhost.com',
+        password=u'sha1$911c9$614a16c3c074f2972e14efbe97f4fa92b266b93f',
+        is_staff=True,
+        is_active=True,
+        is_superuser=True,
+        last_login=datetime.datetime(2011, 8, 18, 20, 39, 14, 352576),
+        date_joined=datetime.datetime(2011, 8, 18, 20, 39, 14, 352576),
+    )
+
+    testmodel1, created = TestModel.objects.get_or_create(
+        id=1,
+        user=user1,
+    )
+
+.. _why:
+----------
+ Why?
+----------
+
+This is a much nicer way of including test data. You probably already have a working site and some data for
+production, but ``dumpdata`` will serialize the data for an entire app. That's too much just to write a quick test!
+
+What people then end up doing is having an old, out-of-date copy of their production data in their test fixtures.
+And because fixtures can be a pain to keep up to date with site changes, it's common place to see a bunch of tests
+depend on the same fixtures. Sometimes entire projects depend on just one or two fixtures.
+
+Unfortunately, if a refactor needs a fixture change due to model changes, changing the fixture could cause other tests to fail
+that are unrelated to the refactor. Worse, it's difficult to edit the json directly, cumbersome to load and modify
+it, and refactoring tools won't update fixtures.
+
+Instead, it's better to have each test use it's own data unrelated to other apps in the project. Django-modeler
+makes this easier to handle by generating Django ORM code that can be included in tests (or for other purposes).
+
+.. _install:
+----------
+ Install
+----------
+
+To get this awesome for your very own, ``pip install django-modeler`` or ``python setup.py install`` from source.
+
+Next, add ``django_modeler`` to your INSTALLED_APPS in ``settings.py``, like so:
+
+    INSTALLED_APPS = (
+        [...snip...]
+
+        'django_modeler',
+
+        [...snip...]
+    )
