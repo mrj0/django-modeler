@@ -8,3 +8,6 @@ class TestModel(models.Model):
     date_created = models.DateTimeField(auto_now_add=True, null=False)
     date_modified = models.DateTimeField(auto_now=True, null=False)
 
+class RelatedToTestModel(models.Model):
+    test_model = models.ForeignKey(TestModel)
+    name = models.TextField()
