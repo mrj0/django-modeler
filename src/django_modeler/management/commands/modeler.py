@@ -64,22 +64,28 @@ class Command(BaseCommand):
         level = roots
         stack = SortedDict()
         map(stack.__setitem__, roots, [])
-        classes = set().union([r.__class__ for r in roots])
 
         while True:
             deps = []
             for obj in level:
-                # add FK classes to set for generating imports
-                classes = classes.union([f.rel.to for f in obj._meta.fields if f.rel])
-                for dep in get_object_dependencies(obj, related=self.query_related):
-                    if not dep in stack:
-                        deps.append(dep)
-            map(stack.__setitem__, deps, [])
-            level = deps
+                deps += get_object_dependencies(obj, related=self.query_related)
+
+            level = []
+            for dep in deps:
+                if dep in stack:
+                    # looks weird but with the sorteddict, replacing a
+                    # key preserves the original order
+                    del stack[dep]
+                else:
+                    # only loop instances we haven't seen before
+                    level.append(dep)
+                stack[dep] = None
 
             if len(deps) < 1:
                 break
 
+        # add FK classes to set for generating imports
+        classes = set().union([obj.__class__ for obj in stack.keys()])
         map(print, generate_imports(*classes))
         print()
         print()
