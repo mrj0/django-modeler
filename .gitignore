@@ -1,12 +1,16 @@
 .installed.cfg
 bin
+build
 develop-eggs
 dist
 downloads
 eggs
 parts
-src/*.egg-info
+*.egg-info
 lib
 lib64
 *.pyc
 *.pyo
+*~
+*.db
+.idea
