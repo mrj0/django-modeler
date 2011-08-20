@@ -12,7 +12,7 @@ Django-modeler generates ORM code from an object instance, optionally including 
 
 Modeler adds a management command to Django:
 
-::
+.. code-block::python
 
     $ python manage.py modeler myapp.testmodel
     from myapp.models import TestModel
@@ -40,6 +40,9 @@ Modeler adds a management command to Django:
         user=user1,
     )
 
+As requested, modeler found the TestModel instances and generated ORM code to recreate it (if it doesn't already
+exist). Modeler also generated code for the User object since it was referenced by TestModel.
+
 .. _why:
 ----------
  Why?
@@ -48,9 +51,9 @@ Modeler adds a management command to Django:
 This is a much nicer way of including test data. You probably already have a working site and some data for
 production, but ``dumpdata`` will serialize the data for an entire app. That's too much just to write a quick test!
 
-What people then end up doing is having an old, out-of-date copy of their production data in their test fixtures.
+Many people end up with an old, out-of-date copy of their production data in their test fixtures that nobody dares to change.
 And because fixtures can be a pain to keep up to date with site changes, it's common place to see a bunch of tests
-depend on the same fixtures. Sometimes entire projects depend on just one or two fixtures.
+depend on the same fixtures. Sometimes entire projects will depend on just one or two fixtures.
 
 Unfortunately, if a refactor needs a fixture change due to model changes, changing the fixture could cause other tests to fail
 that are unrelated to the refactor. Worse, it's difficult to edit the json directly, cumbersome to load and modify
@@ -68,13 +71,167 @@ To get this awesome for your very own, ``pip install django-modeler`` or ``pytho
 
 Next, add ``django_modeler`` to your INSTALLED_APPS in ``settings.py``, like so:
 
-::
+.. code-block:: python
 
     INSTALLED_APPS = (
-        [...snip...]
-
+        # other apps
         'django_modeler',
-
-        [...snip...]
+        # other apps
     )
+
+----------
+ USAGE
+----------
+
+Modeler supports a few command line options:
+
+.. code-block:: bash
+
+    $ python manage.py modeler --help
+    Usage: manage.py modeler [options] <model [filter option] [filter option] ...>
+
+    Writes data to ORM code to the console
+
+    Options:
+      -v VERBOSITY, --verbosity=VERBOSITY
+                            Verbosity level; 0=minimal output, 1=normal output,
+                            2=all output
+      --settings=SETTINGS   The Python path to a settings module, e.g.
+                            "myproject.settings.main". If this isn't provided, the
+                            DJANGO_SETTINGS_MODULE environment variable will be
+                            used.
+      --pythonpath=PYTHONPATH
+                            A directory to add to the Python path, e.g.
+                            "/home/djangoprojects/myproject".
+      --traceback           Print traceback on exception
+      -f FILTER, --filter=FILTER
+                            Filter objects
+      -e EXCLUDE, --exclude=EXCLUDE
+                            Exclude objects
+      -r RELATED, --related=RELATED
+                            number of object relationship levels to pull (does not
+                            resolve circular references).
+      --version             show program's version number and exit
+      -h, --help            show this help message and exit
+
+Most important is the name of the model to start with. Modeler works by starting at an object instance and building
+a dependency tree from that point. The tree can have many starting points, or it can start from a single instance.
+The easiest way to filter for a single object is by using the `-f` filter. For example:
+
+.. code-block:: python
+
+    $ python manage.py modeler auth.user -f pk=1
+    from django.contrib.auth.models import User
+    from decimal import Decimal
+    import datetime
+    
+    user1, created = User.objects.get_or_create(
+        id=1,
+        username=u'mike',
+        first_name=u'',
+        last_name=u'',
+        email=u'mike@localhost.com',
+        password=u'sha1$911c9$614a16c3c074f2972e14efbe97f4fa92b266b93f',
+        is_staff=True,
+        is_active=True,
+        is_superuser=True,
+        last_login=datetime.datetime(2011, 8, 18, 20, 39, 14, 352576),
+        date_joined=datetime.datetime(2011, 8, 18, 20, 39, 14, 352576),
+    )
+
+
+The `-f filter` and `-e exclude` options are fed directly to Django's ORM filter and exclude methods on QuerySet_
+and support the same options.
+
+.. _QuerySet: https://docs.djangoproject.com/en/dev/ref/models/querysets/#django.db.models.query.QuerySet.filter
+
+With the `-r related` option, Modeler will attempt to also use ForeignKey references in it's output. In the example above,
+pulling the auth.user instance only found a single object to serialize. But given the same command with a related depth
+of 1, Modeler will find more objects that reference this particular user instance:
+
+.. code-block:: python
+
+    $ python manage.py modeler auth.user -f pk=1 -r1
+    from django.contrib.auth.models import User
+    from myapp.models import TestModel
+    from decimal import Decimal
+    import datetime
+
+
+    user1, created = User.objects.get_or_create(
+        id=1,
+        username=u'mike',
+        first_name=u'',
+        last_name=u'',
+        email=u'mike@localhost.com',
+        password=u'sha1$911c9$614a16c3c074f2972e14efbe97f4fa92b266b93f',
+        is_staff=True,
+        is_active=True,
+        is_superuser=True,
+        last_login=datetime.datetime(2011, 8, 18, 20, 39, 14, 352576),
+        date_joined=datetime.datetime(2011, 8, 18, 20, 39, 14, 352576),
+    )
+
+    testmodel1, created = TestModel.objects.get_or_create(
+        id=1,
+        user=user1,
+    )
+
+With `-r2` Modeler will find another object instance that depends on the TestModel in the above:
+
+.. code-block:: python
+
+    $ python manage.py modeler auth.user -f pk=1 -r2
+    from myapp.models import RelatedToTestModel
+    from django.contrib.auth.models import User
+    from myapp.models import TestModel
+    from decimal import Decimal
+    import datetime
+
+
+    user1, created = User.objects.get_or_create(
+        id=1,
+        username=u'mike',
+        first_name=u'',
+        last_name=u'',
+        email=u'mike@localhost.com',
+        password=u'sha1$911c9$614a16c3c074f2972e14efbe97f4fa92b266b93f',
+        is_staff=True,
+        is_active=True,
+        is_superuser=True,
+        last_login=datetime.datetime(2011, 8, 18, 20, 39, 14, 352576),
+        date_joined=datetime.datetime(2011, 8, 18, 20, 39, 14, 352576),
+    )
+
+    testmodel1, created = TestModel.objects.get_or_create(
+        id=1,
+        user=user1,
+    )
+
+    relatedtotestmodel1, created = RelatedToTestModel.objects.get_or_create(
+        id=1,
+        test_model=testmodel1,
+        name=u'related_one',
+    )
+
+    relatedtotestmodel2, created = RelatedToTestModel.objects.get_or_create(
+        id=2,
+        test_model=testmodel1,
+        name=u'related_two',
+    )
+
+------------
+ LIMITATIONS
+------------
+
+At this time, Modeler does not attempt to resolve circular dependencies when using `-r`. It may be necessary to limit
+the depth that Modeler will travel in order to avoid an exception because of the model dependencies.
+
+------------
+ SUPPORT
+------------
+
+Please use Github_.
+
+.. _Github: https://github.com/mrj0/django-modeler
 
