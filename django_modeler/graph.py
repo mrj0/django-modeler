@@ -48,10 +48,6 @@ class Digraph(SortedDict):
     def traverse(self):
         ret = SortedDict()
         level = self.roots()
-#        for k, v in self.items():
-#            print 'k', k, '\tlen:', len(v), '\tv', v
-#        print 'graph', self
-#        print 'roots', level
         while len(level) > 0:
             nextlevel = SortedDict()
             for node in level:
@@ -80,38 +76,5 @@ class Digraph(SortedDict):
                     yield el
                 data = {item: (dep - ordered) for item,dep in data.items()
                         if item not in ordered}
-            assert not data, "A cyclic dependency exists amongst %r" % data
+            assert not data, "Data has a cyclic dependency"
     ## end of http://code.activestate.com/recipes/577413/ }}}
-
-#    def traverse(self):
-#        """
-#        Perform a topological sort of the tree
-#        """
-#        ret = SortedDict() # results may not be unique
-#        graph = Digraph()
-#        map(graph.__setitem__, self.keys(), self.values())
-#
-#        level = graph.roots()
-#        print 'roots', level, 'for', graph
-#
-#        while len(level) > 0:
-#            n = level.pop(0)
-#            print 'adding n', n, n.__class__, 'deps', graph[n]
-#            ret.insert(0, n, None)
-#            for m in graph[n]:
-#                # remove the arc from n to m
-#                graph[n] = [e for e in graph[n] if e != m]
-#                if len(graph[n]) < 1:
-#                    ret.insert(0, n, None)
-#                    next_level.append(m)
-#            # print 'inserting self[n]', self[n]
-#            map(ret.__setitem__, next_level, [])
-#            level = list(set(level).union(next_level))
-#            print 'level is now', level
-#            print '-' * 40
-#
-#        arcs = sum(map(sum, graph.values()))
-#        print 'graph is now', arcs
-#        if arcs > 0:
-#            raise ValueError, 'Cyclic dependency found.'
-#        return ret.keys()
