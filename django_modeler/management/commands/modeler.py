@@ -60,7 +60,6 @@ class Command(BaseCommand):
         if len(args) != 1:
             raise CommandError, 'Error: modeler only accepts one model argument'
 
-        # keep building lists of FK dependencies until we get to the leaf
+        # get a list of objects to start from
         roots = self.parse_args(*args, **options)
-
         print(generate(*roots, query_related=self.query_related))
