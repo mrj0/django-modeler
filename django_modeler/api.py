@@ -35,7 +35,7 @@ def generate(*roots, **kw):
             deps += get_object_dependencies(obj)
             next_level += [dep for dep in deps if dep not in graph]
             graph.arc(obj, *deps)
-            
+
             if query_related > 0:
                 related = get_related_objects(obj)
                 for dep in related:
@@ -57,9 +57,18 @@ def generate(*roots, **kw):
         code += stmt + '\n'
     code += '\n\n'
 
-    for obj in reversed(list(graph.traverse())):
+#    visualize(graph)
+    for obj in graph.toposort2():
         code += generate_orm(obj, indent=indent) + '\n\n'
     return code
+
+def visualize(graph):
+    import json
+    # copy graph
+    names = SortedDict()
+    for key, deps in graph.items():
+        names[object_name(key)] = [object_name(d) for d in deps]
+    print json.dumps(names, indent=2)
 
 def generate_imports(*classes):
     """
@@ -105,14 +114,14 @@ def get_related_objects(obj):
                 deps.append(dep)
     return deps
 
+def object_name(obj):
+    return u'{0}{1}'.format(obj._meta.object_name.lower(), obj.pk)
+
 def generate_orm(obj, indent=4):
     """
     Write django ORM code for a given instance.
     """
-    code = '{0}{1}, created = {2}.objects.get_or_create(\n'.format(
-        obj._meta.object_name.lower(),
-        obj.pk,
-        obj._meta.object_name)
+    code = u'{0}, created = {1}.objects.get_or_create(\n'.format(object_name(obj), obj._meta.object_name)
 
     postfields = []
     for field in obj._meta.fields:
