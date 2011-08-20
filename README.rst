@@ -12,7 +12,7 @@ Django-modeler generates ORM code from an object instance, optionally including 
 
 Modeler adds a management command to Django:
 
-.. code-block::python
+::
 
     $ python manage.py modeler myapp.testmodel
     from myapp.models import TestModel
@@ -71,7 +71,7 @@ To get this awesome for your very own, ``pip install django-modeler`` or ``pytho
 
 Next, add ``django_modeler`` to your INSTALLED_APPS in ``settings.py``, like so:
 
-.. code-block:: python
+::
 
     INSTALLED_APPS = (
         # other apps
@@ -85,7 +85,7 @@ Next, add ``django_modeler`` to your INSTALLED_APPS in ``settings.py``, like so:
 
 Modeler supports a few command line options:
 
-.. code-block:: bash
+::
 
     $ python manage.py modeler --help
     Usage: manage.py modeler [options] <model [filter option] [filter option] ...>
@@ -118,7 +118,7 @@ Most important is the name of the model to start with. Modeler works by starting
 a dependency tree from that point. The tree can have many starting points, or it can start from a single instance.
 The easiest way to filter for a single object is by using the `-f` filter. For example:
 
-.. code-block:: python
+::
 
     $ python manage.py modeler auth.user -f pk=1
     from django.contrib.auth.models import User
@@ -149,7 +149,7 @@ With the `-r related` option, Modeler will attempt to also use ForeignKey refere
 pulling the auth.user instance only found a single object to serialize. But given the same command with a related depth
 of 1, Modeler will find more objects that reference this particular user instance:
 
-.. code-block:: python
+::
 
     $ python manage.py modeler auth.user -f pk=1 -r1
     from django.contrib.auth.models import User
@@ -179,7 +179,7 @@ of 1, Modeler will find more objects that reference this particular user instanc
 
 With `-r2` Modeler will find another object instance that depends on the TestModel in the above:
 
-.. code-block:: python
+::
 
     $ python manage.py modeler auth.user -f pk=1 -r2
     from myapp.models import RelatedToTestModel
