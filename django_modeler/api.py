@@ -25,10 +25,6 @@ def generate(*roots, **kw):
 
     while len(level) > 0:
         next_level = []
-#        print '-' * 40
-#        print 'level', level
-#        print 'stack', graph.keys()
-#        print '-' * 40
 
         deps = []
         for obj in level:
@@ -45,12 +41,9 @@ def generate(*roots, **kw):
                 deps += related
         query_related -= 1
 
-        level = next_level
-#        print 'next level', level
+        level = set(next_level)
 
     # add FK classes to set for generating imports
-#    print 'final stack', graph.keys()
-#    print 'traverse', list(graph.traverse())
     classes = set().union([obj.__class__ for obj in graph.keys()])
     code = u''
     for stmt in generate_imports(*classes):
