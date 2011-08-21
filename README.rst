@@ -238,6 +238,7 @@ The original use case was to create test data. Use Modeler to create a `data.py`
     $ python manage.py modeler auth.user -f pk=1 -r2 > tests/data.py
 
 `data.py` probably needs a `load()` method. The tests_ are a good example of this style usage.
+
 .. _tests: https://github.com/mrj0/django-modeler/blob/master/tests/myapp/tests/data.py
 
 Next, in the test that requires this data, add a setupUp method to load and use the data:
