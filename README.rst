@@ -227,6 +227,27 @@ With `-r2` Modeler will find another object instance that depends on the TestMod
 At this time, Modeler does not attempt to resolve circular dependencies when using `-r`. It may be necessary to limit
 the depth that Modeler will travel in order to avoid an exception because of the model dependencies.
 
+-------------------------
+ WHAT CAN I DO WITH IT?
+-------------------------
+
+The original use case was to create test data. Use Modeler to create a `data.py` file in a tests folder:
+
+::
+
+    $ python manage.py modeler auth.user -f pk=1 -r2 > tests/data.py
+
+`data.py` probably needs a `load()` method. The tests_ are a good example of this style usage.
+.. _tests: https://github.com/mrj0/django-modeler/blob/master/tests/myapp/tests/data.py
+
+Next, in the test that requires this data, add a setupUp method to load and use the data:
+
+::
+
+    def setUp(self):
+        data.load()
+
+
 ------------
  SUPPORT
 ------------
