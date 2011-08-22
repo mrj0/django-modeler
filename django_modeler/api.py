@@ -1,3 +1,4 @@
+from _collections import defaultdict
 from django.db.models.fields import DateField, DateTimeField
 from django.db.models.fields.related import OneToOneField, ForeignKey
 from django.db.models.loading import get_apps, get_models
@@ -16,6 +17,17 @@ def generate(*roots, **kw):
     if 'indent' in kw:
         query_related = int(kw['indent'])
         del kw['indent']
+    exclude_related_apps = []
+    if 'exclude_related_apps' in kw:
+        exclude_related_apps = kw['exclude_related_apps']
+        del kw['exclude_related_apps']
+    exclude_related_models = defaultdict(list)
+    if 'exclude_related_models' in kw:
+        models = kw['exclude_related_models']
+        del kw['exclude_related_models']
+        for model in models:
+            app_label, name = model.split('.')
+            exclude_related_models[app_label].append(name)
 
     if len(kw) > 0:
         raise TypeError, 'Unexpected function arguments {}'.format(kw.keys())
@@ -26,14 +38,16 @@ def generate(*roots, **kw):
     while len(level) > 0:
         next_level = []
 
-        deps = []
         for obj in level:
-            deps += get_object_dependencies(obj)
+            deps = get_object_dependencies(obj)
             next_level += [dep for dep in deps if dep not in graph]
             graph.arc(obj, *deps)
 
             if query_related > 0:
-                related = get_related_objects(obj)
+                related = get_related_objects(
+                    obj,
+                    exclude_apps=exclude_related_apps,
+                    exclude_models=exclude_related_models)
                 for dep in related:
                     next_level += [dep for dep in related if dep not in graph]
                     # these are different. since they're related objects, they depend on obj
@@ -92,11 +106,13 @@ def get_object_dependencies(obj):
             deps.append(dep)
     return deps
 
-def get_related_objects(obj):
+def get_related_objects(obj, exclude_apps=None, exclude_models=None):
     """
     Try to get foreign key dependencies of obj
     """
     deps = []
+    exclude_apps = exclude_apps or []
+    exclude_models = exclude_models or {}
     for related in obj._meta.get_all_related_objects():
         if isinstance(related.field, OneToOneField):
             pass
@@ -104,7 +120,10 @@ def get_related_objects(obj):
             accessor = related.get_accessor_name()
             manager = getattr(obj, accessor)
             for dep in manager.all():
-                deps.append(dep)
+                app_label = dep._meta.app_label
+                model_name = dep._meta.object_name.lower()
+                if not app_label in exclude_apps and not model_name in exclude_models.get(app_label, []):
+                    deps.append(dep)
     return deps
 
 def object_name(obj):
