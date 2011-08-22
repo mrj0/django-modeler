@@ -1,15 +1,11 @@
 from __future__ import print_function
 from optparse import make_option
 
-from collections import defaultdict
-
 from django.core.management.base import BaseCommand, CommandError
-from django.db.models import get_model, DateField, DateTimeField, ForeignKey
-from django.db.models.fields.related import OneToOneField
-from django.utils.datastructures import SortedDict
+from django.db.models import get_model
 import sys
 
-from django_modeler.api import generate_imports, get_object_dependencies, generate_orm, generate
+from django_modeler.api import    generate
 
 class Command(BaseCommand):
     args = '<model [filter option] [filter option] ...>'
@@ -33,6 +29,11 @@ class Command(BaseCommand):
             type='int',
             default=0,
             help='number of object relationship levels to pull (does not resolve circular references).'),
+        make_option('--exclude-related',
+            action='append',
+            dest='exclude_related',
+            type='string',
+            help='exclude a package or specific model when searching for related objects (format: app_label or app_label.model)'),
         )
 
     def parse_args(self, *args, **options):
@@ -53,6 +54,14 @@ class Command(BaseCommand):
             excludes.__setitem__(*arg.split('=', 1))
         self.query_related = options['related']
 
+        self.exclude_related_apps = []
+        self.exclude_related_models = []
+        for arg in options.get('exclude_related') or []:
+            if '.' in arg:
+                self.exclude_related_models.append(arg)
+            else:
+                self.exclude_related_apps.append(arg)
+
         qs = model_class.objects.all().filter(**filters)
         qs = qs.exclude(**excludes)
         return qs
@@ -66,4 +75,7 @@ class Command(BaseCommand):
         if len(roots) < 1:
             print('No models found.', file=sys.stderr)
         else:
-            print(generate(*roots, query_related=self.query_related))
+            print(generate(*roots,
+                           query_related=self.query_related,
+                           exclude_related_apps=self.exclude_related_apps,
+                           exclude_related_models=self.exclude_related_models))
