@@ -7,6 +7,7 @@ from django.core.management.base import BaseCommand, CommandError
 from django.db.models import get_model, DateField, DateTimeField, ForeignKey
 from django.db.models.fields.related import OneToOneField
 from django.utils.datastructures import SortedDict
+import sys
 
 from django_modeler.api import generate_imports, get_object_dependencies, generate_orm, generate
 
@@ -62,4 +63,7 @@ class Command(BaseCommand):
 
         # get a list of objects to start from
         roots = self.parse_args(*args, **options)
-        print(generate(*roots, query_related=self.query_related))
+        if len(roots) < 1:
+            print('No models found.', file=sys.stderr)
+        else:
+            print(generate(*roots, query_related=self.query_related))
