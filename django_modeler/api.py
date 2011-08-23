@@ -5,155 +5,166 @@ from django.db.models.loading import get_apps, get_models
 from django.utils.datastructures import SortedDict
 from graph import Digraph
 
-def generate(*roots, **kw):
-    """
-    Generate ORM code for roots.
-    """
-    query_related = 0
-    if 'query_related' in kw:
-        query_related = int(kw['query_related'])
-        del kw['query_related']
-    indent = 4
-    if 'indent' in kw:
-        query_related = int(kw['indent'])
-        del kw['indent']
-    exclude_related_models = defaultdict(list)
-    exclude_related_apps = []
-    if 'exclude_related' in kw:
-        ex = kw['exclude_related']
-        for pair in ex:
-            if '.' in pair:
-                app_label, name = pair.split('.')
-                exclude_related_models[app_label].append(name)
+class Modeler(object):
+    def __init__(self, query_related=0, indent=4, exclude_related=None, exclude_fields=None):
+        self.query_related = query_related
+        self.indent = indent
+        self.exclude_related_models = defaultdict(list)
+        self.exclude_related_apps = []
+        if exclude_related:
+            for pair in exclude_related:
+                if '.' in pair:
+                    app_label, name = pair.split('.')
+                    self.exclude_related_models[app_label].append(name)
+                else:
+                    self.exclude_related_apps.append(pair)
+
+        # excluded fields encompass both related dependencies and field dependencies
+        self.exclude_field_apps = list(self.exclude_related_apps)
+        self.exclude_field_models = defaultdict(list, self.exclude_related_models)
+        if exclude_fields:
+            for pair in exclude_fields:
+                if '.' in pair:
+                    app_label, name = pair.split('.')
+                    self.exclude_field_models[app_label].append(name)
+                else:
+                    self.exclude_field_apps.append(pair)
+
+    def generate(self, *roots):
+        """
+        Generate ORM code for roots.
+        """
+        level = roots
+        self.graph = Digraph(roots)
+
+        query_related = self.query_related # shadows
+
+        while len(level) > 0:
+            next_level = []
+
+            for obj in level:
+                deps = [dep for dep in self.get_object_dependencies(obj)
+                            if not self.is_field_excluded(dep)]
+                next_level += deps
+                self.graph.arc(obj, *deps)
+
+                if query_related > 0:
+                    related = self.get_related_objects(obj)
+                    for dep in related:
+                        next_level += [dep for dep in related if dep not in self.graph]
+                        # these are different. since they're related objects, they depend on obj
+                        self.graph.arc(dep, obj)
+            query_related -= 1
+
+            level = set(next_level)
+
+        # add FK classes to set for generating imports
+        classes = set().union([obj.__class__ for obj in self.graph.keys()])
+        code = u''
+        for stmt in self.generate_imports(*classes):
+            code += stmt + '\n'
+        code += '\n\n'
+
+    #    visualize(graph)
+        for obj in self.graph.toposort2():
+            code += self.generate_orm(obj) + '\n\n'
+        return code
+
+    def is_field_excluded(self, dep):
+        model_name = dep._meta.object_name.lower()
+        app_label = dep._meta.app_label
+        return dep in self.graph or \
+               app_label in self.exclude_field_apps or \
+               model_name in self.exclude_field_models[app_label]
+
+    def visualize(self):
+        import json
+        # copy graph
+        names = SortedDict()
+        for key, deps in self.graph.items():
+            names[object_name(key)] = [object_name(d) for d in deps]
+        print json.dumps(names, indent=2)
+
+    def generate_imports(self, *classes):
+        """
+        Given a list of model classes, generate import statements.
+        """
+        imports = []
+        for cls in classes:
+            for app in get_apps():
+                if cls in get_models(app):
+                    imports.append('from {0} import {1}'.format(app.__name__, cls.__name__))
+                    break
+
+        return imports + [
+            'from decimal import Decimal',
+            'import datetime',
+        ]
+
+    def get_object_dependencies(self, obj):
+        """
+        Get all model dependencies for the instance.
+        """
+        deps = []
+
+        # get the names of FK fields
+        for name in [f.name for f in obj._meta.fields if f.rel]:
+            dep = getattr(obj, name)
+            if dep:
+                deps.append(dep)
+        return deps
+
+    def get_related_objects(self, obj):
+        """
+        Try to get foreign key dependencies of obj
+        """
+        deps = []
+        for related in obj._meta.get_all_related_objects():
+            if isinstance(related.field, OneToOneField):
+                pass
+            elif isinstance(related.field, ForeignKey):
+                accessor = related.get_accessor_name()
+                manager = getattr(obj, accessor)
+                for dep in manager.all():
+                    app_label = dep._meta.app_label
+                    model_name = dep._meta.object_name.lower()
+                    if not app_label in self.exclude_related_apps and not model_name in self.exclude_related_models.get(app_label, []):
+                        deps.append(dep)
+        return deps
+
+    def object_name(self, obj):
+        return u'{0}{1}'.format(obj._meta.object_name.lower(), obj.pk)
+
+    def generate_orm(self, obj):
+        """
+        Write django ORM code for a given instance.
+        """
+        code = u'{0}, created = {1}.objects.get_or_create(\n'.format(self.object_name(obj), obj._meta.object_name)
+
+        postfields = []
+        for field in obj._meta.fields:
+            if field.name.startswith('_'):
+                continue
+            if isinstance(field, DateField) and (field.auto_now or field.auto_now_add):
+                postfields.append(field)
+                continue
+            if isinstance(field, DateTimeField) and (field.auto_now or field.auto_now_add):
+                postfields.append(field)
+                continue
+            if field.rel and field.rel.to:
+                rel = getattr(obj, field.name)
+                if self.is_field_excluded(rel):
+                    continue
+
+            code += '{indent}{name}='.format(indent=(' ' * self.indent), name=field.name)
+            if field.rel and field.rel.to:
+                rel = getattr(obj, field.name)
+                if rel:
+                    code += '{0}{1}'.format(rel._meta.object_name.lower(), rel.pk)
+                else:
+                    code += 'None'
             else:
-                exclude_related_apps.append(pair)
-        del kw['exclude_related']
-    if len(kw) > 0:
-        raise TypeError, 'Unexpected function arguments {}'.format(kw.keys())
-    
-    level = roots
-    graph = Digraph(roots)
-
-    while len(level) > 0:
-        next_level = []
-
-        for obj in level:
-            deps = get_object_dependencies(obj)
-            next_level += [dep for dep in deps if dep not in graph]
-            graph.arc(obj, *deps)
-
-            if query_related > 0:
-                related = get_related_objects(
-                    obj,
-                    exclude_apps=exclude_related_apps,
-                    exclude_models=exclude_related_models)
-                for dep in related:
-                    next_level += [dep for dep in related if dep not in graph]
-                    # these are different. since they're related objects, they depend on obj
-                    graph.arc(dep, obj)
-                deps += related
-        query_related -= 1
-
-        level = set(next_level)
-
-    # add FK classes to set for generating imports
-    classes = set().union([obj.__class__ for obj in graph.keys()])
-    code = u''
-    for stmt in generate_imports(*classes):
-        code += stmt + '\n'
-    code += '\n\n'
-
-#    visualize(graph)
-    for obj in graph.toposort2():
-        code += generate_orm(obj, indent=indent) + '\n\n'
-    return code
-
-def visualize(graph):
-    import json
-    # copy graph
-    names = SortedDict()
-    for key, deps in graph.items():
-        names[object_name(key)] = [object_name(d) for d in deps]
-    print json.dumps(names, indent=2)
-
-def generate_imports(*classes):
-    """
-    Given a list of model classes, generate import statements.
-    """
-    imports = []
-    for cls in classes:
-        for app in get_apps():
-            if cls in get_models(app):
-                imports.append('from {0} import {1}'.format(app.__name__, cls.__name__))
-                break
-
-    return imports + [
-        'from decimal import Decimal',
-        'import datetime',
-    ]
-
-def get_object_dependencies(obj):
-    """
-    Get all model dependencies for the instance.
-    """
-    deps = []
-
-    # get the names of FK fields
-    for name in [f.name for f in obj._meta.fields if f.rel]:
-        dep = getattr(obj, name)
-        if dep:
-            deps.append(dep)
-    return deps
-
-def get_related_objects(obj, exclude_apps=None, exclude_models=None):
-    """
-    Try to get foreign key dependencies of obj
-    """
-    deps = []
-    exclude_apps = exclude_apps or []
-    exclude_models = exclude_models or {}
-    for related in obj._meta.get_all_related_objects():
-        if isinstance(related.field, OneToOneField):
-            pass
-        elif isinstance(related.field, ForeignKey):
-            accessor = related.get_accessor_name()
-            manager = getattr(obj, accessor)
-            for dep in manager.all():
-                app_label = dep._meta.app_label
-                model_name = dep._meta.object_name.lower()
-                if not app_label in exclude_apps and not model_name in exclude_models.get(app_label, []):
-                    deps.append(dep)
-    return deps
-
-def object_name(obj):
-    return u'{0}{1}'.format(obj._meta.object_name.lower(), obj.pk)
-
-def generate_orm(obj, indent=4):
-    """
-    Write django ORM code for a given instance.
-    """
-    code = u'{0}, created = {1}.objects.get_or_create(\n'.format(object_name(obj), obj._meta.object_name)
-
-    postfields = []
-    for field in obj._meta.fields:
-        if field.name.startswith('_'):
-            continue
-        if isinstance(field, DateField) and (field.auto_now or field.auto_now_add):
-            postfields.append(field)
-            continue
-        if isinstance(field, DateTimeField) and (field.auto_now or field.auto_now_add):
-            postfields.append(field)
-            continue
-
-        code += '{indent}{name}='.format(indent=(' ' * indent), name=field.name)
-        if field.rel and field.rel.to:
-            rel = getattr(obj, field.name)
-            if rel:
-                code += '{0}{1}'.format(rel._meta.object_name.lower(), rel.pk)
-            else:
-                code += 'None'
-        else:
-            code += repr(getattr(obj, field.name))
-        code += ',\n'
-    code += ')'
-    return code
+                code += repr(getattr(obj, field.name))
+            code += ',\n'
+        code += ')'
+        return code
