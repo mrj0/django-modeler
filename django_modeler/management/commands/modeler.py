@@ -5,7 +5,7 @@ from django.core.management.base import BaseCommand, CommandError
 from django.db.models import get_model
 import sys
 
-from django_modeler.api import    generate
+from django_modeler.api import Modeler
 
 class Command(BaseCommand):
     args = '<model [filter option] [filter option] ...>'
@@ -34,6 +34,11 @@ class Command(BaseCommand):
             dest='exclude_related',
             type='string',
             help='exclude a package or specific model when searching for related objects (format: app_label or app_label.model)'),
+        make_option('--exclude-field',
+            action='append',
+            dest='exclude_field',
+            type='string',
+            help='exclude field types from ever appearing in output (format: app_label or app_label.model)'),
         )
 
     def parse_args(self, *args, **options):
@@ -53,8 +58,8 @@ class Command(BaseCommand):
                 raise CommandError, 'Exclude syntax is name=value. Invalid argument {0}'.format(arg)
             excludes.__setitem__(*arg.split('=', 1))
         self.query_related = options['related']
-
         self.exclude_related = options.get('exclude_related') or []
+        self.exclude_fields = options.get('exclude_field') or []
 
         qs = model_class.objects.all().filter(**filters)
         qs = qs.exclude(**excludes)
@@ -69,6 +74,7 @@ class Command(BaseCommand):
         if len(roots) < 1:
             print('No models found.', file=sys.stderr)
         else:
-            print(generate(*roots,
-                           query_related=self.query_related,
-                           exclude_related=self.exclude_related))
+            modeler = Modeler(query_related=self.query_related,
+                              exclude_related=self.exclude_related,
+                              exclude_fields=self.exclude_fields)
+            print(modeler.generate(*roots))
