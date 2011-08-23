@@ -17,18 +17,17 @@ def generate(*roots, **kw):
     if 'indent' in kw:
         query_related = int(kw['indent'])
         del kw['indent']
-    exclude_related_apps = []
-    if 'exclude_related_apps' in kw:
-        exclude_related_apps = kw['exclude_related_apps']
-        del kw['exclude_related_apps']
     exclude_related_models = defaultdict(list)
-    if 'exclude_related_models' in kw:
-        models = kw['exclude_related_models']
-        del kw['exclude_related_models']
-        for model in models:
-            app_label, name = model.split('.')
-            exclude_related_models[app_label].append(name)
-
+    exclude_related_apps = []
+    if 'exclude_related' in kw:
+        ex = kw['exclude_related']
+        for pair in ex:
+            if '.' in pair:
+                app_label, name = pair.split('.')
+                exclude_related_models[app_label].append(name)
+            else:
+                exclude_related_apps.append(pair)
+        del kw['exclude_related']
     if len(kw) > 0:
         raise TypeError, 'Unexpected function arguments {}'.format(kw.keys())
     

@@ -54,13 +54,7 @@ class Command(BaseCommand):
             excludes.__setitem__(*arg.split('=', 1))
         self.query_related = options['related']
 
-        self.exclude_related_apps = []
-        self.exclude_related_models = []
-        for arg in options.get('exclude_related') or []:
-            if '.' in arg:
-                self.exclude_related_models.append(arg)
-            else:
-                self.exclude_related_apps.append(arg)
+        self.exclude_related = options.get('exclude_related') or []
 
         qs = model_class.objects.all().filter(**filters)
         qs = qs.exclude(**excludes)
@@ -77,5 +71,4 @@ class Command(BaseCommand):
         else:
             print(generate(*roots,
                            query_related=self.query_related,
-                           exclude_related_apps=self.exclude_related_apps,
-                           exclude_related_models=self.exclude_related_models))
+                           exclude_related=self.exclude_related))
