@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 from django.utils.datastructures import SortedDict
 try:
     from functools import reduce

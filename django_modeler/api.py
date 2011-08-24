@@ -1,9 +1,10 @@
+from __future__ import absolute_import
 from _collections import defaultdict
 from django.db.models.fields import DateField, DateTimeField
 from django.db.models.fields.related import OneToOneField, ForeignKey
 from django.db.models.loading import get_apps, get_models
 from django.utils.datastructures import SortedDict
-from graph import Digraph
+from django_modeler.graph import Digraph
 
 class Modeler(object):
     def __init__(self, query_related=0, indent=4, exclude_related=None, exclude_fields=None):
