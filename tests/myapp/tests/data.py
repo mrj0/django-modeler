@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 from myapp.models import TestModel
 from django.contrib.auth.models import User
 from decimal import Decimal
