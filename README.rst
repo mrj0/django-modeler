@@ -87,7 +87,6 @@ Modeler supports a few command line options:
 
 ::
 
-    $ python manage.py modeler --help
     Usage: manage.py modeler [options] <model [filter option] [filter option] ...>
 
     Writes data to ORM code to the console
@@ -111,6 +110,12 @@ Modeler supports a few command line options:
       -r RELATED, --related=RELATED
                             number of object relationship levels to pull (does not
                             resolve circular references).
+      --exclude-related=EXCLUDE_RELATED
+                            exclude a package or specific model when searching for
+                            related objects (format: app_label or app_label.model)
+      --exclude-field=EXCLUDE_FIELD
+                            exclude field types from ever appearing in output
+                            (format: app_label or app_label.model)
       --version             show program's version number and exit
       -h, --help            show this help message and exit
 
@@ -219,6 +224,13 @@ With `-r2` Modeler will find another object instance that depends on the TestMod
         test_model=testmodel1,
         name=u'related_two',
     )
+
+Other options are ``--exclude-related`` and ``--exclude-field``. These both require an app_label.model argument.
+Exclude related will ignore models found that match the app_label or model name when Modeler is searching
+foreign key relationships, like in the above example both TestModel and RelatedToTestModel were found during the related
+search.
+
+Using ``--exclude-field`` prevents a model or app from ever showing up in the output, regardless of how it was found.
 
 ------------
  LIMITATIONS
