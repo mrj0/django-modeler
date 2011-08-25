@@ -20,6 +20,7 @@ class TestGenerator(TestCase):
         code = Modeler(query_related=2).generate(User.objects.get(pk=1))
         self.assertTrue('testmodel1' in code)
         self.assertTrue('relatedtotestmodel' in code)
+        self.assertTrue('user=user1' in code)
         exec(code)
         TestModel.objects.get(pk=1)
 
@@ -27,12 +28,14 @@ class TestGenerator(TestCase):
         code = Modeler(query_related=2, exclude_related=['myapp']).generate(User.objects.get(pk=1))
         self.assertFalse('testmodel1' in code)
         self.assertFalse('relatedtotestmodel' in code)
+        self.assertFalse('user=user1' in code)
         exec(code)
         TestModel.objects.get(pk=1)
 
     def test_exclude_related_model(self):
         code = Modeler(query_related=2, exclude_related=['myapp.relatedtotestmodel']).generate(User.objects.get(pk=1))
         self.assertTrue('testmodel1' in code)
+        self.assertTrue('user=user1' in code)
         self.assertFalse('relatedtotestmodel' in code)
         exec(code)
         TestModel.objects.get(pk=1)
