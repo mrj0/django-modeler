@@ -41,18 +41,18 @@ class Modeler(object):
         query_related = self.query_related # shadows
 
         while len(level) > 0:
-            next_level = []
+            next_level = set()
 
             for obj in level:
                 deps = [dep for dep in self.get_object_dependencies(obj)
                             if not self.is_field_excluded(dep)]
-                next_level += deps
+                next_level = set(deps) - set(self.graph.keys())
                 self.graph.arc(obj, *deps)
 
                 if query_related > 0:
                     related = self.get_related_objects(obj)
+                    next_level = next_level.union(set(related) - set(self.graph.keys()))
                     for dep in related:
-                        next_level += [dep for dep in related if dep not in self.graph]
                         # these are different. since they're related objects, they depend on obj
                         self.graph.arc(dep, obj)
             query_related -= 1
@@ -73,11 +73,10 @@ class Modeler(object):
 
     def is_field_excluded(self, dep):
         if not dep:
-            return True
+            return False
         model_name = dep._meta.object_name.lower()
         app_label = dep._meta.app_label
-        return dep in self.graph or \
-               app_label in self.exclude_field_apps or \
+        return app_label in self.exclude_field_apps or \
                model_name in self.exclude_field_models[app_label]
 
     def visualize(self):
@@ -85,7 +84,7 @@ class Modeler(object):
         # copy graph
         names = SortedDict()
         for key, deps in self.graph.items():
-            names[object_name(key)] = [object_name(d) for d in deps]
+            names[self.object_name(key)] = [self.object_name(d) for d in deps]
         print json.dumps(names, indent=2)
 
     def generate_imports(self, *classes):
