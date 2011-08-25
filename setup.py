@@ -25,7 +25,7 @@ setup(
     author="Mike Johnson",
     author_email="mike@publicstatic.net",
     name='django-modeler',
-    version="0.2.1",
+    version="0.3",
     description='Generate django ORM code from object instances (great for testing)',
     long_description=codecs.open(os.path.join(os.path.dirname(__file__), 'README.rst'), encoding='utf-8').read(),
     url='https://github.com/mrj0/django-modeler',
