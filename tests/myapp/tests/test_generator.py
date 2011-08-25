@@ -48,3 +48,10 @@ class TestGenerator(TestCase):
         self.assertFalse('user' in code)
         exec(code)
         TestModel.objects.get(pk=1)
+
+    def test_none(self):
+        '''regression'''
+        code = Modeler(query_related=2).generate(TestModel.objects.get(pk=2))
+        self.assertTrue('testmodel2' in code)
+        exec(code)
+        TestModel.objects.get(pk=2)

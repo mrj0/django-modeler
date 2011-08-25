@@ -36,3 +36,8 @@ def load():
         name='related_two',
         test_model=testmodel1,
     )
+
+    testmodel2, created = TestModel.objects.get_or_create(
+        id=2,
+        user=None,
+    )

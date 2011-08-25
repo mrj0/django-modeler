@@ -72,6 +72,8 @@ class Modeler(object):
         return code
 
     def is_field_excluded(self, dep):
+        if not dep:
+            return True
         model_name = dep._meta.object_name.lower()
         app_label = dep._meta.app_label
         return dep in self.graph or \
