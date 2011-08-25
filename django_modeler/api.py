@@ -40,24 +40,26 @@ class Modeler(object):
 
         query_related = self.query_related # shadows
 
-        while len(level) > 0:
+        while level:
             next_level = set()
+            graphkeys = set(self.graph.keys())
 
             for obj in level:
                 deps = [dep for dep in self.get_object_dependencies(obj)
                             if not self.is_field_excluded(dep)]
-                next_level = set(deps) - set(self.graph.keys())
+                next_level = next_level.union(set(deps) - graphkeys)
                 self.graph.arc(obj, *deps)
 
                 if query_related > 0:
                     related = self.get_related_objects(obj)
-                    next_level = next_level.union(set(related) - set(self.graph.keys()))
+                    next_level = next_level.union((set(related) - graphkeys))
                     for dep in related:
                         # these are different. since they're related objects, they depend on obj
                         self.graph.arc(dep, obj)
             query_related -= 1
-
-            level = set(next_level)
+            level = next_level
+            
+            # while level
 
         # add FK classes to set for generating imports
         classes = set().union([obj.__class__ for obj in self.graph.keys()])
