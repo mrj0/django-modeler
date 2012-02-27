@@ -6,10 +6,9 @@ import codecs
 
 # A list of classifiers can be found here:
 # http://pypi.python.org/pypi?%3Aaction=list_classifiers
-from setuptools import find_packages
 
 CLASSIFIERS = [
-     'Development Status :: 3 - Alpha',
+     'Development Status :: 4 - Beta',
      'Environment :: Web Environment',
      'Framework :: Django',
      'Intended Audience :: Developers',
@@ -39,6 +38,9 @@ setup(
         'django'
     ],
     provides=['django_modeler'],
-    packages=find_packages(where='django_modeler'),
+    packages=['django_modeler',
+              'django_modeler.management',
+              'django_modeler.management.commands',
+              ],
 )
 
