@@ -1,11 +1,9 @@
-.. _top:
 ================
  Django-Modeler
 ================
 
 Django-modeler generates ORM code from an object instance, optionally including foreign key dependencies.
 
-.. _example:
 ----------
  Example
 ----------
@@ -43,7 +41,6 @@ Modeler adds a management command to Django:
 As requested, modeler found the TestModel instances and generated ORM code to recreate it (if it doesn't already
 exist). Modeler also generated code for the User object since it was referenced by TestModel.
 
-.. _why:
 ----------
  Why?
 ----------
@@ -62,7 +59,6 @@ it, and refactoring tools won't update fixtures.
 Instead, it's better to have each test use it's own data unrelated to other apps in the project. Django-modeler
 makes this easier to handle by generating Django ORM code that can be included in tests (or for other purposes).
 
-.. _install:
 ----------
  Install
 ----------
