@@ -39,6 +39,6 @@ setup(
         'django'
     ],
     provides=['django_modeler'],
-    packages=find_packages(),
+    packages=find_packages(where='django_modeler'),
 )
 
