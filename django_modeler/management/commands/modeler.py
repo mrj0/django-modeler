@@ -6,7 +6,7 @@ from django.core.management.base import BaseCommand, CommandError
 from django.db.models import get_model
 import sys
 
-from django_modeler import Modeler
+from django_modeler.modeler import Modeler
 
 class Command(BaseCommand):
     args = '<model [filter option] [filter option] ...>'
