@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 from django.test import TestCase
-from django_modeler import Modeler
+from django_modeler.modeler import Modeler
 from tests.myapp.models import TestModel
 
 class TestImports(TestCase):
