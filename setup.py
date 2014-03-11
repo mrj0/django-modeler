@@ -3,6 +3,8 @@
 from distutils.core import setup
 import os
 import codecs
+from setuptools.command import develop
+
 
 # A list of classifiers can be found here:
 # http://pypi.python.org/pypi?%3Aaction=list_classifiers
