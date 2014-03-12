@@ -8,6 +8,7 @@ import sys
 
 from django_modeler.modeler import Modeler
 
+
 class Command(BaseCommand):
     args = '<model [filter option] [filter option] ...>'
     help = 'Writes data to ORM code to the console'
@@ -19,6 +20,11 @@ class Command(BaseCommand):
             dest='filter',
             type='string',
             help='Filter objects'),
+        make_option('--in',
+            action='append',
+            dest='filter_in',
+            type='string',
+            help='Filter objects using an IN list (ex: "--in pk=259576,1232,213")'),
         make_option('-e', '--exclude',
             action='append',
             dest='exclude',
@@ -46,18 +52,24 @@ class Command(BaseCommand):
         name = args[0]
         model_class = get_model(*name.split('.'))
         if not model_class:
-            raise CommandError, 'Error: model not found: {0}'.format(name)
+            raise CommandError('Error: model not found: {0}'.format(name))
 
         filters = {}
         for arg in options.get('filter') or []:
             if '=' not in arg:
-                raise CommandError, 'Filter syntax is name=value. Invalid argument {0}'.format(arg)
+                raise CommandError('Filter syntax is name=value. Invalid argument {0}'.format(arg))
             filters.__setitem__(*arg.split('=', 1))
+        for arg in options.get('filter_in') or []:
+            if '=' not in arg:
+                raise CommandError('Filter syntax is name=value. Invalid argument {0}'.format(arg))
+            name, values = arg.split('=', 1)
+            filters['{0}__in'.format(name)] = filter(None, values.split(','))
         excludes = {}
         for arg in options.get('exclude') or []:
             if '=' not in arg:
-                raise CommandError, 'Exclude syntax is name=value. Invalid argument {0}'.format(arg)
+                raise CommandError('Exclude syntax is name=value. Invalid argument {0}'.format(arg))
             excludes.__setitem__(*arg.split('=', 1))
+
         self.query_related = options['related']
         self.exclude_related = options.get('exclude_related') or []
         self.exclude_fields = options.get('exclude_field') or []

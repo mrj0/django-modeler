@@ -68,7 +68,7 @@ class Modeler(object):
             code += stmt + '\n'
         code += '\n\n'
 
-    #    visualize(graph)
+        # self.visualize()
         for obj in self.graph.toposort2():
             code += self.generate_orm(obj) + '\n\n'
         return code
