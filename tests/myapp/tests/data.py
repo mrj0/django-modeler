@@ -1,9 +1,8 @@
-from __future__ import absolute_import
 from myapp.models import TestModel
 from django.contrib.auth.models import User
 from decimal import Decimal
 import datetime
-from tests.myapp.models import RelatedToTestModel
+from myapp.models import RelatedToTestModel
 
 def load():
     user1, created = User.objects.get_or_create(

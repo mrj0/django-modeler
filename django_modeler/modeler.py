@@ -1,12 +1,14 @@
-from __future__ import absolute_import
-from collections import defaultdict
+import typing
+from collections import defaultdict, OrderedDict
+
+from django.db.models import Model
 from django.db.models.fields import DateField, DateTimeField
 from django.db.models.fields.related import OneToOneField, ForeignKey
-from django.db.models.loading import get_apps, get_models
-from django.utils.datastructures import SortedDict
+from django.apps import apps
 from django_modeler.graph import Digraph
 
-class Modeler(object):
+
+class Modeler:
     def __init__(self, query_related=0, indent=4, exclude_related=None, exclude_fields=None):
         self.query_related = query_related
         self.indent = indent
@@ -73,7 +75,7 @@ class Modeler(object):
             code += self.generate_orm(obj) + '\n\n'
         return code
 
-    def is_field_excluded(self, dep):
+    def is_field_excluded(self, dep:Model) -> bool:
         if not dep:
             return False
         model_name = dep._meta.object_name.lower()
@@ -84,10 +86,10 @@ class Modeler(object):
     def visualize(self):
         import json
         # copy graph
-        names = SortedDict()
+        names = OrderedDict()
         for key, deps in self.graph.items():
             names[self.object_name(key)] = [self.object_name(d) for d in deps]
-        print json.dumps(names, indent=2)
+        print(json.dumps(names, indent=2))
 
     def generate_imports(self, *classes):
         """
@@ -95,9 +97,9 @@ class Modeler(object):
         """
         imports = []
         for cls in classes:
-            for app in get_apps():
-                if cls in get_models(app):
-                    imports.append('from {0} import {1}'.format(app.__name__, cls.__name__))
+            for app_config in apps.get_app_configs():
+                if cls in app_config.get_models():
+                    imports.append('from {0}.models import {1}'.format(app_config.name, cls.__name__))
                     break
 
         return imports + [
@@ -105,29 +107,27 @@ class Modeler(object):
             'import datetime',
         ]
 
-    def get_object_dependencies(self, obj):
+    def get_object_dependencies(self, obj) -> typing.List[Model]:
         """
         Get all model dependencies for the instance.
         """
         deps = []
 
         # get the names of FK fields
-        for name in [f.name for f in obj._meta.fields if f.rel]:
+        for name in [f.name for f in obj._meta.fields if f.related_model]:
             dep = getattr(obj, name)
             if dep:
                 deps.append(dep)
         return deps
 
-    def get_related_objects(self, obj):
+    def get_related_objects(self, obj) -> typing.List[Model]:
         """
         Try to get foreign key dependencies of obj
         """
         deps = []
-        for related in obj._meta.get_all_related_objects():
-            if isinstance(related.field, OneToOneField):
-                pass
-            elif isinstance(related.field, ForeignKey):
-                accessor = related.get_accessor_name()
+        for field in obj._meta.get_fields():
+            if field.is_relation and field.one_to_many:
+                accessor = field.get_accessor_name()
                 manager = getattr(obj, accessor)
                 for dep in manager.all():
                     app_label = dep._meta.app_label
@@ -139,7 +139,7 @@ class Modeler(object):
     def object_name(self, obj):
         return u'{0}{1}'.format(obj._meta.object_name.lower(), obj.pk)
 
-    def generate_orm(self, obj):
+    def generate_orm(self, obj: Model) -> str:
         """
         Write django ORM code for a given instance.
         """
@@ -155,13 +155,13 @@ class Modeler(object):
             if isinstance(field, DateTimeField) and (field.auto_now or field.auto_now_add):
                 postfields.append(field)
                 continue
-            if field.rel and field.rel.to:
+            if field.related_model and field.remote_field.model:
                 rel = getattr(obj, field.name)
                 if self.is_field_excluded(rel):
                     continue
 
             code += '{indent}{name}='.format(indent=(' ' * self.indent), name=field.name)
-            if field.rel and field.rel.to:
+            if field.related_model and field.remote_field.model:
                 rel = getattr(obj, field.name)
                 if rel:
                     code += '{0}{1}'.format(rel._meta.object_name.lower(), rel.pk)

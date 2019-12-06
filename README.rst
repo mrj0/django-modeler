@@ -8,11 +8,9 @@ Django-modeler generates ORM code from an object instance, optionally including 
  Example
 ----------
 
-Modeler adds a management command to Django:
-
 ::
 
-    $ python manage.py modeler myapp.testmodel
+    $ django-modeler myapp.testmodel
     from myapp.models import TestModel
     from django.contrib.auth.models import User
     from decimal import Decimal
@@ -121,7 +119,7 @@ The easiest way to filter for a single object is by using the `-f` filter. For e
 
 ::
 
-    $ python manage.py modeler auth.user -f pk=1
+    $ django-modeler auth.user -f pk=1
     from django.contrib.auth.models import User
     from decimal import Decimal
     import datetime
@@ -152,7 +150,7 @@ of 1, Modeler will find more objects that reference this particular user instanc
 
 ::
 
-    $ python manage.py modeler auth.user -f pk=1 -r1
+    $ django-modeler auth.user -f pk=1 -r1
     from django.contrib.auth.models import User
     from myapp.models import TestModel
     from decimal import Decimal
@@ -182,7 +180,7 @@ With `-r2` Modeler will find another object instance that depends on the TestMod
 
 ::
 
-    $ python manage.py modeler auth.user -f pk=1 -r2
+    $ django-modeler auth.user -f pk=1 -r2
     from myapp.models import RelatedToTestModel
     from django.contrib.auth.models import User
     from myapp.models import TestModel
@@ -243,7 +241,7 @@ The original use case was to create test data. Use Modeler to create a `data.py`
 
 ::
 
-    $ python manage.py modeler auth.user -f pk=1 -r2 > tests/data.py
+    $ django-modeler auth.user -f pk=1 -r2 > tests/data.py
 
 `data.py` probably needs a `load()` method. The tests_ are a good example of this style usage.
 

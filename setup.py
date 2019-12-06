@@ -17,9 +17,7 @@ CLASSIFIERS = [
      'License :: OSI Approved :: zlib/libpng License',
      'Operating System :: OS Independent',
      'Programming Language :: Python',
-     'Programming Language :: Python :: 2',
-     'Programming Language :: Python :: 2.6',
-     'Programming Language :: Python :: 2.7',
+     'Programming Language :: Python :: 3',
 ]
 
 setup(
@@ -36,13 +34,13 @@ setup(
 
     classifiers=CLASSIFIERS,
 
+    entry_points = {
+        'console_scripts': ['django-modeler=django_modeler.cli:main'],
+    },
     requires=[
-        'django'
+        'Django'
     ],
     provides=['django_modeler'],
-    packages=['django_modeler',
-              'django_modeler.management',
-              'django_modeler.management.commands',
-              ],
+    packages=['django_modeler'],
 )
 

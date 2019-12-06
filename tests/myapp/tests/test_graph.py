@@ -1,6 +1,7 @@
 from django.test import TestCase
 from django_modeler.graph import Digraph
 
+
 class TestGraph(TestCase):
     def test_store(self):
         g = Digraph()
@@ -19,15 +20,15 @@ class TestGraph(TestCase):
 
     def test_roots(self):
         g = Digraph([1, 2, 3])
-        g.arc(3, 4) # arc should create a key for 4
+        g.arc(3, 4)  # arc should create a key for 4
         self.assertEqual([1, 2, 3], list(g.roots()))
 
     def test_find_roots(self):
         g = Digraph([1, 2, 3])
-        g.arc(3, 4) # arc should create a key for 4
+        g.arc(3, 4)  # arc should create a key for 4
         # disconnected graph
         g.arc(6, 7)
-        self.assertEqual([1, 2 , 3, 6], g.roots())
+        self.assertEqual([1, 2, 3, 6], g.roots())
 
     def test_cyclic(self):
         g = Digraph()
@@ -50,7 +51,7 @@ class TestGraph(TestCase):
 
     def test_dups(self):
         g = Digraph()
-        #g.arc(1, 2)
+        # g.arc(1, 2)
         g.arc(3, 1, 2)
         g.arc(4, 1, 2, 3)
         self.assertEquals([4, 1, 2, 3], list(g.traverse()))
