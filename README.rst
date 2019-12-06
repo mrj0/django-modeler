@@ -63,16 +63,6 @@ makes this easier to handle by generating Django ORM code that can be included i
 
 To get this awesome for your very own, ``pip install django-modeler`` or ``python setup.py install`` from source.
 
-Next, add ``django_modeler`` to your INSTALLED_APPS in ``settings.py``, like so:
-
-::
-
-    INSTALLED_APPS = (
-        # other apps
-        'django_modeler',
-        # other apps
-    )
-
 ----------
  USAGE
 ----------
