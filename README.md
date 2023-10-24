@@ -1,14 +1,9 @@
-================
- Django-Modeler
-================
+# Django-Modeler
 
-Django-modeler generates ORM code from an object instance, optionally including foreign key dependencies.
+Django-modeler generates ORM code from an object instance, optionally
+including foreign key dependencies.
 
-----------
- Example
-----------
-
-::
+## Example
 
     $ django-modeler myapp.testmodel
     from myapp.models import TestModel
@@ -36,40 +31,42 @@ Django-modeler generates ORM code from an object instance, optionally including 
         user=user1,
     )
 
-As requested, modeler found the TestModel instances and generated ORM code to recreate it (if it doesn't already
-exist). Modeler also generated code for the User object since it was referenced by TestModel.
+As requested, modeler found the TestModel instances and generated ORM
+code to recreate it (if it doesn't already exist). Modeler also
+generated code for the User object since it was referenced by TestModel.
 
-----------
- Why?
-----------
+## Why?
 
-This is a much nicer way of including test data. You probably already have a working site and some data for
-production, but ``dumpdata`` will serialize the data for an entire app. That's too much just to write a quick test!
+This is a much nicer way of including test data. You probably already
+have a working site and some data for production, but `dumpdata` will
+serialize the data for an entire app. That's too much just to write a
+quick test!
 
-Many people end up with an old, out-of-date copy of their production data in their test fixtures that nobody dares to change.
-And because fixtures can be a pain to keep up to date with site changes, it's common place to see a bunch of tests
-depend on the same fixtures. Sometimes entire projects will depend on just one or two fixtures.
+Many people end up with an old, out-of-date copy of their production
+data in their test fixtures that nobody dares to change. And because
+fixtures can be a pain to keep up to date with site changes, it's
+common place to see a bunch of tests depend on the same fixtures.
+Sometimes entire projects will depend on just one or two fixtures.
 
-Unfortunately, if a refactor needs a fixture change due to model changes, changing the fixture could cause other tests to fail
-that are unrelated to the refactor. Worse, it's difficult to edit the json directly, cumbersome to load and modify
-it, and refactoring tools won't update fixtures.
+Unfortunately, if a refactor needs a fixture change due to model
+changes, changing the fixture could cause other tests to fail that are
+unrelated to the refactor. Worse, it's difficult to edit the json
+directly, cumbersome to load and modify it, and refactoring tools won't
+update fixtures.
 
-Instead, it's better to have each test use it's own data unrelated to other apps in the project. Django-modeler
-makes this easier to handle by generating Django ORM code that can be included in tests (or for other purposes).
+Instead, it's better to have each test use it's own data unrelated to
+other apps in the project. Django-modeler makes this easier to handle by
+generating Django ORM code that can be included in tests (or for other
+purposes).
 
-----------
- Install
-----------
+## Install
 
-To get this awesome for your very own, ``pip install django-modeler`` or ``python setup.py install`` from source.
+To get this awesome for your very own, `pip install django-modeler` or
+`python setup.py install` from source.
 
-----------
- USAGE
-----------
+## USAGE
 
 Modeler supports a few command line options:
-
-::
 
     Usage: manage.py modeler [options] <model [filter option] [filter option] ...>
 
@@ -103,17 +100,17 @@ Modeler supports a few command line options:
       --version             show program's version number and exit
       -h, --help            show this help message and exit
 
-Most important is the name of the model to start with. Modeler works by starting at an object instance and building
-a dependency tree from that point. The tree can have many starting points, or it can start from a single instance.
-The easiest way to filter for a single object is by using the `-f` filter. For example:
-
-::
+Most important is the name of the model to start with. Modeler works by
+starting at an object instance and building a dependency tree from that
+point. The tree can have many starting points, or it can start from a
+single instance. The easiest way to filter for a single object is by
+using the `-f` filter. For example:
 
     $ django-modeler auth.user -f pk=1
     from django.contrib.auth.models import User
     from decimal import Decimal
     import datetime
-    
+
     user1, created = User.objects.get_or_create(
         id=1,
         username=u'mike',
@@ -128,17 +125,16 @@ The easiest way to filter for a single object is by using the `-f` filter. For e
         date_joined=datetime.datetime(2011, 8, 18, 20, 39, 14, 352576),
     )
 
-
-The `-f filter` and `-e exclude` options are fed directly to Django's ORM filter and exclude methods on QuerySet_
+The `-f filter` and `-e exclude` options are fed
+directly to Django's ORM filter and exclude methods on
+[QuerySet](https://docs.djangoproject.com/en/dev/ref/models/querysets/#django.db.models.query.QuerySet.filter)
 and support the same options.
 
-.. _QuerySet: https://docs.djangoproject.com/en/dev/ref/models/querysets/#django.db.models.query.QuerySet.filter
-
-With the `-r related` option, Modeler will attempt to also use ForeignKey references in it's output. In the example above,
-pulling the auth.user instance only found a single object to serialize. But given the same command with a related depth
-of 1, Modeler will find more objects that reference this particular user instance:
-
-::
+With the `-r related` option, Modeler will attempt to also
+use ForeignKey references in it's output. In the example above, pulling
+the auth.user instance only found a single object to serialize. But
+given the same command with a related depth of 1, Modeler will find more
+objects that reference this particular user instance:
 
     $ django-modeler auth.user -f pk=1 -r1
     from django.contrib.auth.models import User
@@ -166,9 +162,8 @@ of 1, Modeler will find more objects that reference this particular user instanc
         user=user1,
     )
 
-With `-r2` Modeler will find another object instance that depends on the TestModel in the above:
-
-::
+With `-r2` Modeler will find another object instance that
+depends on the TestModel in the above:
 
     $ django-modeler auth.user -f pk=1 -r2
     from myapp.models import RelatedToTestModel
@@ -209,47 +204,39 @@ With `-r2` Modeler will find another object instance that depends on the TestMod
         name=u'related_two',
     )
 
-Other options are ``--exclude-related`` and ``--exclude-field``. These both require an app_label.model argument.
-Exclude related will ignore models found that match the app_label or model name when Modeler is searching
-foreign key relationships, like in the above example both TestModel and RelatedToTestModel were found during the related
-search.
+Other options are `--exclude-related` and `--exclude-field`. These both
+require an app_label.model argument. Exclude related will ignore models
+found that match the app_label or model name when Modeler is searching
+foreign key relationships, like in the above example both TestModel and
+RelatedToTestModel were found during the related search.
 
-Using ``--exclude-field`` prevents a model or app from ever showing up in the output, regardless of how it was found.
+Using `--exclude-field` prevents a model or app from ever showing up in
+the output, regardless of how it was found.
 
-------------
- LIMITATIONS
-------------
+## LIMITATIONS
 
-At this time, Modeler does not attempt to resolve circular dependencies when using `-r`. It may be necessary to limit
-the depth that Modeler will travel in order to avoid an exception because of the model dependencies.
+At this time, Modeler does not attempt to resolve circular dependencies
+when using `-r`. It may be necessary to limit the depth that
+Modeler will travel in order to avoid an exception because of the model
+dependencies.
 
--------------------------
- WHAT CAN I DO WITH IT?
--------------------------
+## WHAT CAN I DO WITH IT?
 
-The original use case was to create test data. Use Modeler to create a `data.py` file in a tests folder:
-
-::
+The original use case was to create test data. Use Modeler to create a
+`data.py` file in a tests folder:
 
     $ django-modeler auth.user -f pk=1 -r2 > tests/data.py
 
-`data.py` probably needs a `load()` method. The tests_ are a good example of this style usage.
+`data.py` probably needs a `load()` method. The
+[tests](https://github.com/mrj0/django-modeler/blob/master/tests/myapp/tests/data.py)
+are a good example of this style usage.
 
-.. _tests: https://github.com/mrj0/django-modeler/blob/master/tests/myapp/tests/data.py
-
-Next, in the test that requires this data, add a setupUp method to load and use the data:
-
-::
+Next, in the test that requires this data, add a setupUp method to load
+and use the data:
 
     def setUp(self):
         data.load()
 
+## SUPPORT
 
-------------
- SUPPORT
-------------
-
-Please use Github_.
-
-.. _Github: https://github.com/mrj0/django-modeler
-
+Please use [Github](https://github.com/mrj0/django-modeler).
